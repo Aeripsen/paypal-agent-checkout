@@ -7,7 +7,7 @@ and only then creates a PayPal order in the sandbox. The buyer approves on PayPa
 ## What it does
 
 1. You type a request, for example "Buy $15 of cloud credits, max $20".
-2. Gemini (`gemini-2.0-flash`) extracts item, amount, currency and your stated limit as JSON.
+2. Gemini (`gemini-2.5-flash`) extracts item, amount, currency and your stated limit as JSON.
 3. The server applies the policy before any PayPal call:
    - **BLOCK** if the amount is over the budget cap ($30 by default) or over the limit you wrote in the request.
      No PayPal order is ever created.
@@ -25,7 +25,7 @@ and only then creates a PayPal order in the sandbox. The buyer approves on PayPa
 
 ## AI used
 
-- Google Gemini `gemini-2.0-flash` through the Generative Language REST API, in JSON mode, to parse the request.
+- Google Gemini `gemini-2.5-flash` through the Generative Language REST API, in JSON mode, to parse the request.
   If no `GEMINI_API_KEY` is set, a regex fallback runs and the log says so.
 - Claude Code (Anthropic) helped write the code.
 

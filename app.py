@@ -85,7 +85,7 @@ def ai_parse(text):
         prompt = ("Extract the purchase request as JSON with keys item (string), amount (number), "
                   "currency (ISO code, default USD), max_amount (number or null, the user's stated limit). "
                   "Return only JSON.\nRequest: " + text)
-        url = ("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="
+        url = ("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
                + urllib.parse.quote(key))
         try:
             r = http_json(url, {"contents": [{"parts": [{"text": prompt}]}],
@@ -94,7 +94,7 @@ def ai_parse(text):
             out = json.loads(r["candidates"][0]["content"]["parts"][0]["text"])
             if isinstance(out, list):
                 out = out[0]
-            out["parser"] = "gemini-2.0-flash"
+            out["parser"] = "gemini-2.5-flash"
             return out
         except Exception as e:  # keep the demo alive, but say so
             fallback = regex_parse(text)
