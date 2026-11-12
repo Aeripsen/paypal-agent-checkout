@@ -25,6 +25,9 @@ BUDGET_CAP = float(os.environ.get("BUDGET_CAP", "30"))
 REVIEW_OVER = float(os.environ.get("REVIEW_OVER", "20"))
 KNOWN_SELLERS = {"cloud credits", "domain name", "api credits", "ebook", "coffee"}
 
+GEMINI_MODELS = os.environ.get(
+    "GEMINI_MODELS", "gemini-flash-latest,gemini-3-flash-preview,gemini-flash-lite-latest,gemini-3.1-flash-lite").split(",")
+
 LOG = []          # audit trail, newest first
 PENDING = {}      # review_id -> parsed request awaiting a human decision
 
@@ -85,21 +88,24 @@ def ai_parse(text):
         prompt = ("Extract the purchase request as JSON with keys item (string), amount (number), "
                   "currency (ISO code, default USD), max_amount (number or null, the user's stated limit). "
                   "Return only JSON.\nRequest: " + text)
-        url = ("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="
-               + urllib.parse.quote(key))
-        try:
-            r = http_json(url, {"contents": [{"parts": [{"text": prompt}]}],
-                                "generationConfig": {"responseMimeType": "application/json"}},
-                          {"Content-Type": "application/json"})
-            out = json.loads(r["candidates"][0]["content"]["parts"][0]["text"])
-            if isinstance(out, list):
-                out = out[0]
-            out["parser"] = "gemini-2.5-flash"
-            return out
-        except Exception as e:  # keep the demo alive, but say so
-            fallback = regex_parse(text)
-            fallback["parser"] = f"regex (Gemini failed: {type(e).__name__})"
-            return fallback
+        err = None
+        for model in GEMINI_MODELS:
+            url = (f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key="
+                   + urllib.parse.quote(key))
+            try:
+                r = http_json(url, {"contents": [{"parts": [{"text": prompt}]}],
+                                    "generationConfig": {"responseMimeType": "application/json"}},
+                              {"Content-Type": "application/json"})
+                out = json.loads(r["candidates"][0]["content"]["parts"][0]["text"])
+                if isinstance(out, list):
+                    out = out[0]
+                out["parser"] = model
+                return out
+            except Exception as e:  # overloaded or retired model: try the next one
+                err = e
+        fallback = regex_parse(text)  # keep the demo alive, but say so
+        fallback["parser"] = f"regex (every Gemini model failed: {err})"
+        return fallback
     out = regex_parse(text)
     out["parser"] = "regex (no GEMINI_API_KEY)"
     return out
